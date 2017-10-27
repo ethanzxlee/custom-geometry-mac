@@ -15,7 +15,7 @@ class GameViewController: NSViewController {
         super.viewDidLoad()
         
         // create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        let scene = SCNScene()
         
         // create and add a camera to the scene
         let cameraNode = SCNNode()
@@ -25,25 +25,18 @@ class GameViewController: NSViewController {
         // place the camera
         cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
         
-        // create and add a light to the scene
-        let lightNode = SCNNode()
-        lightNode.light = SCNLight()
-        lightNode.light!.type = .omni
-        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
-        scene.rootNode.addChildNode(lightNode)
+        // create and add lights to the scene
+        let lightNode0 = SCNNode()
+        lightNode0.light = SCNLight()
+        lightNode0.light!.type = .omni
+        lightNode0.position = SCNVector3(x: 0, y: 10, z: 10)
+        scene.rootNode.addChildNode(lightNode0)
         
-        // create and add an ambient light to the scene
-        let ambientLightNode = SCNNode()
-        ambientLightNode.light = SCNLight()
-        ambientLightNode.light!.type = .ambient
-        ambientLightNode.light!.color = NSColor.darkGray
-        scene.rootNode.addChildNode(ambientLightNode)
-        
-        // retrieve the ship node
-        let ship = scene.rootNode.childNode(withName: "ship", recursively: true)!
-        
-        // animate the 3d object
-        ship.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: 2, z: 0, duration: 1)))
+        let lightNode1 = SCNNode()
+        lightNode1.light = SCNLight()
+        lightNode1.light!.type = .omni
+        lightNode1.position = SCNVector3(5, -10, 0)
+        scene.rootNode.addChildNode(lightNode1)
         
         // retrieve the SCNView
         let scnView = self.view as! SCNView
@@ -60,46 +53,45 @@ class GameViewController: NSViewController {
         // configure the view
         scnView.backgroundColor = NSColor.black
         
-        // Add a click gesture recognizer
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
-        var gestureRecognizers = scnView.gestureRecognizers
-        gestureRecognizers.insert(clickGesture, at: 0)
-        scnView.gestureRecognizers = gestureRecognizers
+        addCustomGeometry()
     }
     
-    @objc
-    func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
-        // retrieve the SCNView
+    func addCustomGeometry() {
+        let vertices: [SCNVector3] = [
+            SCNVector3(0, 1, 0),
+            SCNVector3(-0.5, 0, 0.5),
+            SCNVector3(0.5, 0, 0.5),
+            SCNVector3(0.5, 0, -0.5),
+            SCNVector3(-0.5, 0, -0.5),
+            SCNVector3(0, -1, 0),
+        ]
+    
+        let source = SCNGeometrySource(vertices: vertices)
+        
+        let indices: [UInt16] = [
+            0, 1, 2,
+            2, 3, 0,
+            3, 4, 0,
+            4, 1, 0,
+            1, 5, 2,
+            2, 5, 3,
+            3, 5, 4,
+            4, 5, 1
+        ]
+        
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        
+        let node = SCNNode(geometry: geometry)
+
         let scnView = self.view as! SCNView
         
-        // check what nodes are clicked
-        let p = gestureRecognizer.location(in: scnView)
-        let hitResults = scnView.hitTest(p, options: [:])
-        // check that we clicked on at least one object
-        if hitResults.count > 0 {
-            // retrieved the first clicked object
-            let result = hitResults[0]
-            
-            // get its material
-            let material = result.node.geometry!.firstMaterial!
-            
-            // highlight it
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.5
-            
-            // on completion - unhighlight
-            SCNTransaction.completionBlock = {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 0.5
-                
-                material.emission.contents = NSColor.black
-                
-                SCNTransaction.commit()
-            }
-            
-            material.emission.contents = NSColor.red
-            
-            SCNTransaction.commit()
-        }
+        scnView.scene?.rootNode.addChildNode(node)
+        
+        let rotateAction = SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: .pi, z: 0, duration: 5))
+        node.runAction(rotateAction)
     }
+    
+   
 }
